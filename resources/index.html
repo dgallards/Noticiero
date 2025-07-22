@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Noticiero - RSS News Aggregator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com" defer></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">Noticiero - Últimas Noticias</h1>
+        <nav class="mb-8">
+            <ul class="flex flex-wrap justify-center gap-3">
+                <li>
+                    <a href="#" onclick="loadFeeds()"
+                        class="px-4 py-2 rounded-full bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400">Última
+                        hora</a>
+                </li>
+                <li>
+                    <a href="#" onclick="loadFeeds('science')"
+                        class="px-4 py-2 rounded-full bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300">Ciencia</a>
+                </li>
+                <li>
+                    <a href="#" onclick="loadFeeds('videogames')"
+                        class="px-4 py-2 rounded-full bg-purple-500 text-white font-semibold shadow hover:bg-purple-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300">Videojuegos</a>
+                </li>
+                <li>
+                    <a href="#" onclick="loadFeeds('technology')"
+                        class="px-4 py-2 rounded-full bg-pink-500 text-white font-semibold shadow hover:bg-pink-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-pink-300">Tecnología</a>
+                </li>
+                <li>
+                    <a href="#" onclick="loadFeeds('economy')"
+                        class="px-4 py-2 rounded-full bg-yellow-500 text-white font-semibold shadow hover:bg-yellow-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300">Economía</a>
+                </li>
+                <li>
+                    <a href="#" onclick="loadFeeds('culture')"
+                        class="px-4 py-2 rounded-full bg-red-500 text-white font-semibold shadow hover:bg-red-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300">Cultura</a>
+                </li>
+            </ul>
+        </nav>
+        <div id="feeds-container" class="space-y-12"></div>
+    </div>
+    <script>
+        // Helpers
+        const truncate = (str, n) => str.length > n ? str.slice(0, n - 1) + '…' : str;
+        const stripHtml = str => str ? str.replace(/<[^>]+>/g, '') : '';
+        const getSubtitle = item =>
+            stripHtml(item.description) ||
+            stripHtml(item.summary) ||
+            stripHtml(item['media:text']) ||
+            '';
+
+        const extractTitle = item => {
+            let title = item.title || 'Sin título';
+            if (title?.a) {
+                if (typeof title.a === 'string') return title.a;
+                if (typeof title.a === 'object' && title.a._) return title.a._;
+            }
+            return typeof title === 'string' ? title : 'Sin título';
+        };
+
+        function renderFeedRow(feedName, items) {
+            return `
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-2xl font-semibold mb-4">${feedName}</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                        ${items.map(item => `
+                            <div class="bg-gray-50 rounded-lg shadow hover:shadow-lg transition flex flex-col">
+                                <a href="${item.link || '#'}" target="_blank" rel="noopener noreferrer" class="block">
+                                    <header class="font-bold text-lg mb-2 px-2 pt-2">${extractTitle(item)}</header>
+                                    <p class="text-gray-700 text-sm px-2 pb-2">${truncate(getSubtitle(item), 256)}</p>
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Weather code to emoji mapping
+        const weatherIcons = {
+            0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️",
+            51: "🌦️", 53: "🌦️", 55: "🌦️", 56: "🌧️", 57: "🌧️",
+            61: "🌧️", 63: "🌧️", 65: "🌧️", 66: "🌧️", 67: "🌧️",
+            71: "🌨️", 73: "🌨️", 75: "🌨️", 77: "🌨️", 80: "🌦️",
+            81: "🌦️", 82: "🌦️", 85: "🌨️", 86: "🌨️", 95: "⛈️",
+            96: "⛈️", 99: "⛈️"
+        };
+
+        async function renderWeather() {
+            try {
+                const latitude = 39.4761, longitude = -6.3722;
+                const res = await fetch(`/weather?latitude=${latitude}&longitude=${longitude}`);
+                if (!res.ok) throw new Error('No se pudo cargar el tiempo');
+                const data = await res.json();
+                const daily = data.daily_next_7_days || [];
+                const hourly = data.hourly_today || [];
+
+                const dailyCards = daily.map(day => {
+                    const date = new Date(day.date);
+                    const dayName = date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return `
+                        <div class="bg-blue-50 rounded-lg p-3 flex flex-col items-center shadow">
+                            <div class="text-sm text-blue-900 font-semibold mb-1">${dayName}</div>
+                            <div class="text-2xl mb-1">${Math.round(day.temperature_max)}° / ${Math.round(day.temperature_min)}°</div>
+                            <div class="text-lg mb-1">${weatherIcons[hourly[0]?.weathercode] || "☀️"}</div>
+                            <div class="text-xs text-gray-600">🌧️ ${Math.round(day.precipitation_sum)}mm (${Math.round(day.precipitation_probability_max)}%)</div>
+                            <div class="text-xs text-gray-600">☀️ UV ${Math.round(day.uv_index_max)}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                const mainHours = ["06:00", "09:00", "12:00", "15:00", "18:00", "21:00"];
+                const hourlyMain = hourly.filter(hour => {
+                    const hourStr = new Date(hour.time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    return mainHours.includes(hourStr);
+                });
+                const hourlyCards = hourlyMain.map(hour => {
+                    const hourStr = new Date(hour.time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    return `
+                        <div class="bg-blue-50 rounded-lg p-2 flex flex-col items-center shadow-sm">
+                            <div class="text-xs text-blue-900 font-semibold mb-1">${hourStr}</div>
+                            <div class="text-lg mb-1">${weatherIcons[hour.weathercode] || "☀️"}</div>
+                            <div class="text-sm mb-1">${Math.round(hour.temperature)}°C</div>
+                            <div class="text-xs text-gray-600">💧${Math.round(hour.relative_humidity)}%</div>
+                            <div class="text-xs text-gray-600">🌧️${Math.round(hour.precipitation)}mm</div>
+                        </div>
+                    `;
+                }).join('');
+
+                const container = document.querySelector('.container');
+                const weatherDiv = document.createElement('div');
+                weatherDiv.className = "mb-8";
+                weatherDiv.innerHTML = `
+                    <div class="bg-blue-100 rounded-lg shadow p-4 flex flex-col items-center">
+                        <div class="text-xl font-bold mb-2 text-blue-900">Cáceres - Pronóstico 7 días</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 w-full">
+                            ${dailyCards}
+                        </div>
+                        <div class="mt-4 w-full">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-2">Pronóstico Horario Hoy</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 justify-center">
+                                ${hourlyCards}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.prepend(weatherDiv);
+            } catch (err) {
+                console.error('Error cargando el tiempo:', err);
+            }
+        }
+
+        async function loadFeeds(category) {
+            try {
+                const feedsRes = await fetch('/feeds');
+                const feedsData = await feedsRes.json();
+                let allFeeds;
+                switch (category) {
+                    case 'science':
+                        allFeeds = Array.isArray(feedsData.science) ? feedsData.science.map(f => ({ ...f, group: 'Ciencia' })) : [];
+                        break;
+                    case 'videogames':
+                        allFeeds = Array.isArray(feedsData.videogames) ? feedsData.videogames.map(f => ({ ...f, group: 'Videojuegos' })) : [];
+                        break;
+                    case 'technology':
+                        allFeeds = Array.isArray(feedsData.technology) ? feedsData.technology.map(f => ({ ...f, group: 'Tecnología' })) : [];
+                        break;
+                    case 'economy':
+                        allFeeds = Array.isArray(feedsData.economy) ? feedsData.economy.map(f => ({ ...f, group: 'Economía' })) : [];
+                        break;
+                    case 'culture':
+                        allFeeds = Array.isArray(feedsData.culture) ? feedsData.culture.map(f => ({ ...f, group: 'Cultura' })) : [];
+                        break;
+                    default:
+                        allFeeds = [
+                            ...(Array.isArray(feedsData.spain) ? feedsData.spain.map(f => ({ ...f, group: 'España' })) : []),
+                            ...(Array.isArray(feedsData.international) ? feedsData.international.map(f => ({ ...f, group: 'Internacional' })) : [])
+                        ];
+                        break;
+                }
+
+                const feedsContainer = document.getElementById('feeds-container');
+                feedsContainer.innerHTML = ''; // Limpieza inicial
+
+                if (!Array.isArray(allFeeds)) {
+                    feedsContainer.innerHTML = '<div class="text-center text-red-600">No se encontraron feeds para la categoría seleccionada.</div>';
+                    return;
+                }
+
+                for (const feed of allFeeds) {
+                    try {
+                        const res = await fetch(`/feed?url=${encodeURIComponent(feed.url)}`);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data = await res.json();
+
+                        let items = [];
+                        if (data.rss?.channel?.item) items = [].concat(data.rss.channel.item);
+                        else if (data.feed?.entry) items = [].concat(data.feed.entry);
+                        else if (data.channel?.item) items = [].concat(data.channel.item);
+                        else if (data.items) items = [].concat(data.items);
+
+                        if (!items.length) throw new Error('No hay noticias en el feed');
+
+                        // Render progresivo
+                        const rowHTML = renderFeedRow(feed.name, items.slice(0, 5));
+                        feedsContainer.insertAdjacentHTML("beforeend", rowHTML);
+                    } catch (err) {
+                        // Feed fallido omitido
+                    }
+                }
+            } catch (err) {
+                console.error('Error cargando la lista de feeds:', err);
+            }
+        }
+
+        // Run main logic
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFeeds();
+
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(renderWeather);
+            } else {
+                setTimeout(renderWeather, 2000);
+            }
+        });
+    </script>
+</body>
+
+</html>

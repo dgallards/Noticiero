@@ -20,6 +20,9 @@
                         hora</a>
                 </li>
                 <li>
+                    <a href="#" onclick="loadFeeds('extremadura')"
+                        class="px-4 py-2 rounded-full bg-indigo-500 text-white font-semibold shadow hover:bg-indigo-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300">Extremadura</a>
+                <li>
                     <a href="#" onclick="loadFeeds('science')"
                         class="px-4 py-2 rounded-full bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300">Ciencia</a>
                 </li>
@@ -160,6 +163,9 @@
                 const feedsData = await feedsRes.json();
                 let allFeeds;
                 switch (category) {
+                    case 'extremadura':
+                        allFeeds = Array.isArray(feedsData.extremadura) ? feedsData.extremadura.map(f => ({ ...f, group: 'Extremadura' })) : [];
+                        break;
                     case 'science':
                         allFeeds = Array.isArray(feedsData.science) ? feedsData.science.map(f => ({ ...f, group: 'Ciencia' })) : [];
                         break;

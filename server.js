@@ -28,6 +28,15 @@ const internationalFeeds = [
     { name: "Al Jazeera English", url: "https://www.aljazeera.com/xml/rss/all.xml" }
 ];
 
+const extremaduraFeeds = [
+{ name: "Hoy Última Hora", url: "https://www.hoy.es/rss/2.0/?section=ultima-hora" },
+{ name: "Hoy Villanueva", url: "https://www.hoy.es/rss/2.0/?section=villanueva" },
+{ name: "Hoy Cáceres", url: "https://www.hoy.es/rss/2.0/?section=caceres" },
+{ name: "El Periódico Extremadura vegas Altas", url: "https://www.elperiodicoextremadura.com/rss/section/25006" },
+{ name: "El Periódico Extremadura Cáceres", url: "https://www.elperiodicoextremadura.com/rss/section/25017" },
+{ name: "Canal Extremadura Podcast", url: "https://www.canalextremadura.es/podcast/3342" }
+]
+
 const scienceFeeds = [
   { name: "New Scientist", url: "https://www.newscientist.com/feed/home/" },
   { name: "Scientific American", url: "https://rss.sciam.com/ScientificAmerican-Global" },
@@ -73,6 +82,7 @@ const technologyFeeds = [
 app.get('/feeds', (req, res) => {
     res.json({
         spain: spainFeeds,
+        extremadura: extremaduraFeeds,
         international: internationalFeeds,
         science: scienceFeeds,
         videogames: videogamesFeeds,
